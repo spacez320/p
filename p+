@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# `p+` is a program that creates a new password, 
+# places it within my encrypted password file, 
+# and echos out the new password or places it
+# within the X clipboard
+
+PASSWD_LENGTH=32                                    # length of generated passwords
+GPG_HOMEDIR="/home/matthew/mnt/logos/.gnupg"        # homedir for gpg keys
+PASSWD_FILE_PATH="/home/matthew/mnt/logos"          # path to master password file
+PASSWD_MASTER_FILE="pass.gpg"                       # name of master password file
+PASSWD_BAK_PATH="/home/matthew/mnt/logos/bak/pass"  # password backup directory
+TMP_PATH="/tmp"                                     # temporary storage directory
+
+p+_main() {
+
+    local toecho=false      # true if writing new password to stdout
+    local KEY="$1"          # password key term
+    local PASS="$2"         # password value
+
+    local passdata=""       # stores current contents of master password file
+
+    while getopts "o:" opt; do 
+        case "$opt" in
+            o)
+                toecho=true    
+                KEY="$OPTARG"
+                PASS="$3"
+                ;;
+        esac
+    done
+
+    # create a new password if one not supplied
+    if [ ! "$PASS" ]; then 
+        PASS=$(pwgen $PASSWD_LENGTH 1)
+    fi
+
+    # backup the old password file
+    if ! $(cp "$PASSWD_FILE_PATH/$PASSWD_MASTER_FILE" \
+        "$PASSWD_BAK_PATH/pass.`date +%Y%m%d.%H%M%S`.gpg" &> /dev/null); 
+        then
+            echo 'Could not create the password backup, exiting.'
+            exit 1
+    fi
+
+    # create tmp pass file output
+    passData=$(gpg --homedir=$GPG_HOMEDIR -d \
+        "$PASSWD_FILE_PATH/$PASSWD_MASTER_FILE") 
+
+    # append new password to file output and write to a temporary file
+    tmpFile=$(mktemp --tmpdir=$TMP_PATH)
+    echo -e "$passData\n$KEY $PASS" | column -t > $tmpFile 
+
+    # create the new pgp signed master file, remove the temporary file
+    gpg --homedir=$GPG_HOMEDIR -e $tmpFile
+    rm $tmpFile
+    mv "$tmpFile.gpg" "$PASSWD_FILE_PATH/$PASSWD_MASTER_FILE"
+
+    # output the password in the way specified
+    if $toecho; then
+        echo $PASS 
+    else
+        echo $PASS | xclip -selection clipboard
+    fi
+}
+
+p+_main $@
