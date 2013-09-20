@@ -50,11 +50,11 @@ Some commands require you be located on the machine with your home source.
 
 ## USAGE ##
 
-* **p setup**
+* `p setup`
 
   Run this first. It helps you set up GPG and initialize `p`.
 
-* **p get (options) (query)**
+* `p get (options) (query)`
 
   Query a passwords source, dump it to Xclip by default.
 
@@ -63,7 +63,7 @@ Some commands require you be located on the machine with your home source.
   *query* is the search string. If none is given, it will dump the entire
   passwords file. 
 
-* **p add (options) [key] (value)**
+* `p add (options) [key] (value)`
 
   Add passwords to a password source.
 
@@ -74,7 +74,7 @@ Some commands require you be located on the machine with your home source.
 
   *value* is an optional explicit password
 
-* **p init (options) [source]**
+* `p init (options) [source]`
 
   Creates a new passwords source.
 
@@ -83,21 +83,21 @@ Some commands require you be located on the machine with your home source.
   *source* is the directory for the new password source. It must be empty and
   writeable.
 
-* **p pull [source]**
+* `p pull [source]`
 
   Updates the home source from another given source.
 
   *source* is the source directory to overwrite the home source with.
 
-* **p push**
+* `p push`
 
   Updates all findable password sources with the home source.
 
-* **p sync [source]**
+* `p sync [source]`
 
   Does a pull, then a push (see `p pull` and `p push`).
 
-* **p source**
+* `p source`
 
   Lists known sources, specifies the active one.
 
