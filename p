@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# `p` should have been distributed with a `license` file.
+# MIT License (MIT), Copyright (c) 2013 Matthew Coleman
+
 VERSION='p: manage passwords through bash, v0.1'
 
 USAGE='
@@ -14,34 +17,46 @@ USAGE='
 #   USAGE
 #
 #   p setup
-#     Run this first.
+#     Run this first. It helps you set up GPG and initialize `p`.
 #
 #   p get <options> <query>
-#     This form is to query a passwords source. 
+#     Query a passwords source, dump it to Xclip by default.
 #
 #     -o  output to stdout
+#   
+#     query;  search string. If none is given, it will dump the entire
+#             passwords file.
 #
 #   p new <options> [key] <value>
-#     This form is to add passwords to a password source.
+#     Add passwords to a password source. 
 #
-#     -l  password length
+#     -l  password length, `p` will reject < 12 characters
+#
+#     key;  the key for the password that you can use for later retrieval
+#
+#     value;  an optional explicit password
 #
 #   p init <options> [source]
-#     This form is to create a new passwords source.
+#     Create a new passwords source. 
 #
-#     -c  sync mode
+#     -c  sync mode (used internally)
 #
-#   p pull <options> [source]
-#     This updates the home source from another source.
+#     *source* is the directory for the new password source, it must be empty
+#     and writeable
+#
+#   p pull [source]
+#     Updates the home source from another given source.
+#
+#     *source* is the source directory to overwrite the home source with.
 #
 #   p push 
-#     This updates all passwords sources from the home source. 
+#     Updates all findable password sources with the home source.
 #
-#   p sync
-#     This does a pull, and then a push.
+#   p sync [source]
+#     Does a pull, and then a push.
 #
 #   p source
-#     List current sources, specify the active one.
+#     List known sources, specify the active one.
 #
 ###############################################################################
 '
