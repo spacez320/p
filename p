@@ -1,40 +1,463 @@
 #!/bin/bash
 
-# `p` is a program that gets a password out of
-# my gpg encrypted passwords file and places it
-# within the X clipboard
+VERSION='p: manage passwords through bash, v0.1'
 
-PASSWD_FILE_PATH="/home/matthew/mnt/logos"
-PASSWD_MASTER_FILE="pass.gpg"
+USAGE='
+###############################################################################
+#
+#   `p` is a program to manage passwords through bash.
+#
+#   * It uses GPG to encrypt password sources.
+#   * It uses pwgen to generate passwords.
+#   * It uses Xclip to push passwords into the X clipboard.
+#
+#   USAGE
+#
+#   p setup
+#     Run this first.
+#
+#   p get <options> <query>
+#     This form is to query a passwords source. 
+#
+#     -o  output to stdout
+#
+#   p new <options> [key] <value>
+#     This form is to add passwords to a password source.
+#
+#     -l  password length
+#
+#   p init <options> [source]
+#     This form is to create a new passwords source.
+#
+#     -c  sync mode
+#
+#   p pull <options> [source]
+#     This updates the home source from another source.
+#
+#   p push 
+#     This updates all passwords sources from the home source. 
+#
+#   p sync
+#     This does a pull, and then a push.
+#
+#   p source
+#     List current sources, specify the active one.
+#
+###############################################################################
+'
+
+CURRENT_USER=$(whoami)
+
+MINIMUM_PASSWORD_LENGTH=12
+
+P_HOME="$HOME/.p"
+P_SOURCE="$P_HOME"
+
+_p_find_source() {
+
+  if [ -r "$HOME/.psources" ]; then
+    # check recorded sources, use first found 
+    while read source; do
+      # is the .gnupg directory available and is the p.gpg file available?
+      if [ -d "$source/.gnupg" -a -a "$source/p.gpg" ]; then
+        P_SOURCE="$source"
+        break
+      fi
+    done < "$HOME/.psources"
+  fi
+
+  # make sure we found something
+  if [ ! -d "$P_SOURCE/.gnupg" -a ! -a "$P_SOURCE/p.gpg" ]; then
+    echo -e "\nI didn't find a valid source or the home source."
+    echo -e "Is this your first time running \`p\`? Try \`p setup\`.\n"
+    exit 1
+  fi
+}
+
+_p_check_home() {
+
+  # check if we have a home
+  if [ ! -d "$P_HOME" ]; then
+    echo "This operation requires the home source, which doesn't seem there; exiting."
+    exit 1
+  fi
+}
 
 p_main() {
 
-    local toecho=false
+  while getopts "hV" opt; do 
+    case $opt in
+      h)  # help
+          echo "$USAGE" 
+          exit 0
+          ;;
+      V)  # version
+          echo "$VERSION"
+          exit 0
+          ;;
+      *)  echo "$USAGE"
+          exit 1
+          ;;
+    esac
+  done
 
-    SEARCH="$1"
+  case $1 in
+    "setup")  action=p_setup
+              ;;
+    "get")  action=p_get
 
-    while getopts "o:d:" opt; do 
-        case "$opt" in
-            o)
-                toecho=true    
-                SEARCH="$OPTARG"
-                ;;
-            d)
-               PASSWD_FILE_PATH="$OPTARG" 
-               ;;
-        esac
-    done
+            # determine source
+            _p_find_source
+            ;;
+    "add")  action=p_add
 
-    local passtmp=$(gpg --no-verbose --quiet \
-        --homedir "$PASSWD_FILE_PATH/.gnupg" \
-       -d "$PASSWD_FILE_PATH/$PASSWD_MASTER_FILE" | grep "$SEARCH")
-    local passval=$(awk -F' ' '{ print $2 }' <<< $passtmp)
+            # determine source
+            _p_find_source
+            ;;
+    "init") action=p_init
 
-    if $toecho; then
-        echo $passval
-    else
-        echo $passval | xclip -selection clipboard
+            # requires home
+            _p_check_home
+            ;;
+    "pull") action=p_pull
+
+            # requires home
+            _p_check_home
+            ;;
+    "push") action=p_push
+
+            # requires home
+            _p_check_home
+            ;;
+    "sync") action=p_sync
+
+            # requires home
+            _p_check_home
+            ;;
+    "source") action=p_source
+              ;;
+    \?)   echo -e "\np doesn't know what '$1' is."
+          echo "$USAGE"
+          exit 1
+          ;;
+    *)    echo "$USAGE"
+          exit 1
+          ;;
+  esac
+      
+  # throw out the action argument
+  local pass_args=''
+  local first=true
+  for arg in "$@"; do
+    if $first; then 
+      first=false; continue
     fi
+    pass_args+="$arg "
+  done
+
+  $action $pass_args 
+}
+
+p_setup() {
+
+  echo -e "\nWelcome to \`p\`. Let's do a couple of things before we begin."
+  
+  # do GPG key check
+
+  echo -e "
+-------------------------------------------------
+Checking for a valid GPG key...
+"
+
+  gpg --no-verbose --quiet --list-keys $CURRENT_USER &> /dev/null 
+
+  if [ ! $? -eq 0 ]; then
+
+    echo "It looks like you don't have a valid GPG key ready to go."
+    echo -n "Would you like to go through the process now (yes/no)? "
+
+    read keep_going
+
+    case $keep_going in
+      "yes" | "y")
+          echo ""
+          gpg --gen-key
+          ;;
+      "no" | "n")
+          echo -e "\nOk, exiting.\n"
+          exit 0
+          ;;
+    esac
+
+    if [ ! $? -eq 0 ]; then
+      echo "Creating your GPG key seemed to fail for some reason; exiting."
+      exit 1
+    fi
+  else
+    echo -e "It looks like you have a GPG key we can use."
+  fi
+
+  # set up home source
+
+  echo -e "
+-------------------------------------------------
+Setting up config and the home source...
+"
+
+  # check if we already have a home
+  if [ -d "$P_HOME" -a -f "$P_HOME/p.gpg" -a -d "$P_HOME/.gnupg" ]; then
+    echo "It appears you already have a home source ($HOME/.p)."
+    echo -e "I will let you remove this yourself before continuing.\n"
+    exit 0
+  fi
+
+  mkdir -p "$P_HOME/bak"
+  touch "$HOME/.psources"
+  cp -r "$HOME/.gnupg" "$P_HOME"
+  echo "" | gpg --homedir="$P_HOME/.gnupg" --yes -e -r $CURRENT_USER > "$P_HOME/p.gpg"
+
+  echo "Ok, successfully created '$HOME/.p' and '$HOME/.psources'." 
+  echo -e "You should be good to go! Try adding your first password with \`p add [something]\`.\n"
+
+  return 0
+}
+
+p_get() {
+
+#   p get <options> <query>
+#     This form is to query a passwords source. 
+#
+#     -o  output to stdout
+
+  local stdout=false
+
+  while getopts "o" opt; do 
+    case $opt in
+      o)  stdout=true
+          ;;
+      *)  echo "$USAGE"
+          exit 1
+          ;;
+    esac
+  done
+  shift $(($OPTIND - 1))
+
+  # determine search
+  local search=$1
+
+  # get password
+  local output=
+  if [ -z $search ]; then
+    # get everything
+    output=$(gpg --no-verbose --quiet --homedir "$P_SOURCE/.gnupg" -d "$P_SOURCE/p.gpg")
+  else
+    output=$(awk -F' ' '{ print $2 }' <<< \
+      $(gpg --no-verbose --quiet --homedir "$P_SOURCE/.gnupg" -d "$P_SOURCE/p.gpg" | grep "$search"))
+  fi
+
+  if [ -z "$output" ]; then
+    echo "No results found for '$search'"
+    return 1
+  fi
+  if $stdout; then
+    echo -e "$output"
+  else
+    echo $output | xclip -sel clip
+  fi
+
+  return 0
+}
+
+
+p_add() {
+
+#   p new <options> [key] <value>
+#     This form is to add passwords to a password source.
+#
+#     -l  password length
+#     -o  output to stdout
+
+  local password_length=32
+  local stdout=false
+
+  while getopts "l:o" opt; do
+    case "$opt" in
+      l)  if [[ $OPTARG = *[!0-9]* ]] || [ $OPTARG -lt $MINIMUM_PASSWORD_LENGTH ]; then
+            echo "Your specified password size isn't a number, or is too small (>=$MINIMUM_PASSWORD_LENGTH)."
+            exit 1
+          fi
+          password_length="$OPTARG"
+          ;;
+      o)  stdout=true
+          ;;
+      *)  echo "$USAGE"
+          exit 1
+          ;;
+    esac
+  done
+  shift $(($OPTIND - 1))
+
+  local key=$1
+  local pass=$2
+
+  # create pass if none supplied
+  if [ ! "$pass" ]; then
+    pass=$(pwgen $password_length 1) 
+  fi
+
+  # backup the current password file
+  if [ ! -d "$P_SOURCE/bak" ]; then mkdir "$P_SOURCE/bak"; fi
+  if ! $(cp "$P_SOURCE/p.gpg" \
+    "$P_SOURCE/bak/p.`date +%Y%m%d%H%M%S`.gpg" &> /dev/null); then
+      echo "Could not create password backup, exiting."
+      exit 1
+  fi
+
+  # append new password
+  local passwords=$( echo -e "$(gpg --homedir="$P_SOURCE/.gnupg" -d "$P_SOURCE/p.gpg")\n$key $pass" | column -t)
+
+  # create new passwords file
+  echo -e "$passwords" | gpg --homedir="$P_SOURCE/.gnupg" --yes -e -r $CURRENT_USER > "$P_SOURCE/p.gpg"
+
+  # check success
+  if [ $? -eq 0 ]; then
+    echo "Successfully added password for '$key'"
+  fi
+
+  # output
+  if $stdout; then
+    echo $pass
+  else
+    echo $pass | xclip -sel clip
+  fi
+
+  return 0
+}
+
+p_init() {
+
+#   p init <options> [source]
+#     This form is to create a new passwords source.
+#
+#     -c  sync mode
+
+  sync_mode=false
+
+  while getopts "c" opt; do
+    case "$opt" in
+      c)  # don't track the new source
+          sync_mode=true
+          ;;
+      *)  echo "$USAGE"
+          exit 1
+          ;;
+    esac
+  done
+  shift $(($OPTIND - 1))
+
+  # check and get absolute path
+  if ! $sync_mode; then 
+    if [ ! -d "$1" -o ! -w "$1" -o "$(ls -A "$1")" ]; then
+      echo "Provided source '$1' is not a directory, or is not writeable, or is not empty; exiting."
+      exit 1
+    fi
+  fi
+  local source="$(cd $1; pwd)"
+
+  # copy p files
+  cp -r "$P_HOME/"{.gnupg,p.gpg} "$source/"
+
+  # add new source to sources directory
+  if ! $sync_mode; then
+    echo "$source" >> "$HOME/.psources"
+  fi
+
+  $sync_mode || echo "Successfully created p source '$source'."
+  
+  # reset argument pointer
+  $sync_mode && OPTIND=1
+
+  return 0
+}
+
+p_pull() {
+
+#   p pull <options> [source]
+#     This updates the home source from another source.
+  
+  # is the .gnupg directory available and is the p.gpg file available?
+  if [ ! -d "$1" -o ! -d "$1/.gnupg" -o ! -a "$1/p.gpg" ]; then
+    echo "Provided source '$1' doesn't appear to be a valid source." 
+    exit 1
+  fi
+  local source="$(cd $1; pwd)"
+
+  # copy p files
+  cp -r "$source/"{.gnupg,p.gpg} "$P_HOME/"
+
+  if [ $? -eq 0 ]; then
+    echo "Successfully updated the home source."
+  fi
+
+}
+
+p_push() {
+
+#   p push 
+#     This updates all available passwords sources from the home source. 
+
+  while read source; do
+    # is the .gnupg directory available and is the p.gpg file available?
+    if [ -d "$source/.gnupg" -a -a "$source/p.gpg" ]; then
+      p_init -c "$source"
+      if [ $? -eq 0 ]; then 
+        echo "Found and updated '$source'."
+      fi
+    fi
+  done < "$HOME/.psources"
+
+  return 0
+}
+
+p_sync() {
+
+#   p sync
+#     This does a pull and then push.
+  
+  p_pull $@ && p_push
+
+  return 0
+}
+
+p_source() {
+
+#   p source
+#     List current sources, specify the active one.
+
+  local non_home=false
+
+  _p_find_source
+
+  echo ""
+  while read source; do
+    if [ "$source" == "$P_SOURCE" ]; then
+      non_home=true
+      echo "--> $source"
+    else
+      echo "    $source"
+    fi
+  done < "$HOME/.psources"
+
+  if [ -d "$P_HOME" -a -f "$P_HOME/p.gpg" -a -d "$P_HOME/.gnupg" ]; then
+    if ! $non_home; then
+      echo -e "--> $HOME/.p\n"
+    else
+      echo -e "    $HOME/.p\n"
+    fi
+  fi
+
+  return 0
 }
 
 p_main $@
+exit $?
