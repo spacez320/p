@@ -15,8 +15,8 @@ promote secure password practices.
 `p` uses an encrypted password file and a GPG keypair to manage *password
 sources*. It assumes you will have the following:
 
-1 a *home source*, where your password sources will originate from
-2 any number of additional sources that live elsewhere (like thumb-drives)
+1. a *home source*, where your password sources will originate from
+2. any number of additional sources that live elsewhere (like thumb-drives)
 
 You may add new passwords to any source, but afterwards you will need to come
 back to your home source and synchronize through a pull-to-home/push-to-others
