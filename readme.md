@@ -54,7 +54,7 @@ Some commands require you be located on the machine with your home source.
 
   Run this first. It helps you set up GPG and initialize `p`.
 
-* **p get <options> <query>**
+* **p get (options) (query)**
 
   Query a passwords source, dump it to Xclip by default.
 
@@ -63,7 +63,7 @@ Some commands require you be located on the machine with your home source.
   *query* is the search string. If none is given, it will dump the entire
   passwords file. 
 
-* **p new <options> [key] <value>**
+* **p add (options) [key] (value)**
 
   Add passwords to a password source.
 
@@ -74,7 +74,7 @@ Some commands require you be located on the machine with your home source.
 
   *value* is an optional explicit password
 
-* **p init <options> [source]**
+* **p init (options) [source]**
 
   Creates a new passwords source.
 
