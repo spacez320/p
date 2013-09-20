@@ -27,7 +27,7 @@ USAGE='
 #     query;  search string. If none is given, it will dump the entire
 #             passwords file.
 #
-#   p new <options> [key] <value>
+#   p add <options> [key] <value>
 #     Add passwords to a password source. 
 #
 #     -l  password length, `p` will reject < 12 characters
