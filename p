@@ -36,6 +36,13 @@ USAGE='
 #     key;  key for the password, used for later retrieval
 #     value;  optional explicit password
 #
+#   p rm <options> [key]
+#     Remove a password from a password source.
+#
+#     -y  do not ask questions
+#
+#     key;  key for the password to remove
+#
 #   p init <options> [source]
 #     Create a new passwords source. 
 #
@@ -130,6 +137,11 @@ p_main() {
             # determine source
             _p_find_source
             ;;
+    "rm") action=p_remove
+
+          # determine source
+          _p_find_source
+          ;;
     "init") action=p_init
 
             # requires home
@@ -357,6 +369,79 @@ p_add() {
   fi
 
   return 0
+}
+
+p_remove() {
+
+#   p rm <options> [key]
+#     Remove a password from a password source.
+#
+#     -y  do not ask questions
+#
+#     key;  key for the password to remove
+
+  local prompt=true
+
+  while getopts "y" opt; do
+    case "$opt" in
+      y)  prompt=false 
+          ;;
+      *)  echo "$USAGE"
+          exit 1
+          ;;
+    esac
+  done
+  shift $(($OPTIND - 1))
+
+  local key=$1
+
+  if [ -z $key ]; then
+    echo "You must provide a key to remove its password; exiting."
+    exit 1
+  fi
+
+  # get passwords 
+  local passwords=`p_get -o`  
+
+  # make sure the key exists
+  echo -e "$passwords" | grep -w $key > /dev/null
+  if [ ! $? -eq 0 ]; then
+    echo "No results found for '$key'"
+    return 1
+  fi
+
+  # backup the current password file
+  if [ ! -d "$P_SOURCE/bak" ]; then mkdir "$P_SOURCE/bak"; fi
+  if ! $(cp "$P_SOURCE/p.gpg" \
+    "$P_SOURCE/bak/p.`date +%Y%m%d%H%M%S`.gpg" &> /dev/null); then
+      echo "Could not create password backup, exiting."
+      exit 1
+  fi
+
+  # prompt
+  if $prompt; then
+
+    echo "You are about to remove the password entry for '$key'."
+    echo -n "Are you sure about this? (yes/no) "
+
+    read keep_going
+    case $keep_going in
+      "no" | "n")
+          echo -e "\nOk, exiting.\n"
+          exit 0
+          ;;
+    esac
+  fi
+
+  # create new passwords file
+  echo -e "$passwords" | sed "/$key/d" | gpg --homedir="$P_SOURCE/.gnupg" --yes -e -r $CURRENT_USER > "$P_SOURCE/p.gpg"
+
+  # check success
+  if [ $? -eq 0 ]; then
+    echo "Successfully removed password for '$key'"
+  fi
+
+  exit 0
 }
 
 p_init() {
