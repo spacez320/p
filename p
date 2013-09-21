@@ -24,36 +24,37 @@ USAGE='
 #
 #     -o  output to stdout
 #   
-#     query;  search string. If none is given, it will dump the entire
-#             passwords file.
+#     query;  search string; if none given, it will dump the entire
+#             passwords file
 #
 #   p add <options> [key] <value>
 #     Add passwords to a password source. 
 #
 #     -l  password length, `p` will reject < 12 characters
+#     -o  output to stdout
 #
-#     key;  the key for the password that you can use for later retrieval
-#
-#     value;  an optional explicit password
+#     key;  key for the password, used for later retrieval
+#     value;  optional explicit password
 #
 #   p init <options> [source]
 #     Create a new passwords source. 
 #
 #     -c  sync mode (used internally)
 #
-#     *source* is the directory for the new password source, it must be empty
-#     and writeable
+#     source; directory for the new password source
 #
 #   p pull [source]
 #     Updates the home source from another given source.
 #
-#     *source* is the source directory to overwrite the home source with.
+#     source; source directory to overwrite the home source
 #
 #   p push 
 #     Updates all findable password sources with the home source.
 #
 #   p sync [source]
 #     Does a pull, and then a push.
+#
+#     source; source directory to overwrite the home source with
 #
 #   p source
 #     List known sources, specify the active one.
@@ -175,6 +176,9 @@ p_main() {
 
 p_setup() {
 
+#   p setup
+#     Run this first. It helps you set up GPG and initialize `p`.
+
   echo -e "\nWelcome to \`p\`. Let's do a couple of things before we begin."
   
   # do GPG key check
@@ -240,9 +244,12 @@ Setting up config and the home source...
 p_get() {
 
 #   p get <options> <query>
-#     This form is to query a passwords source. 
+#     Query a passwords source, dump it to Xclip by default.
 #
 #     -o  output to stdout
+#   
+#     query;  search string; if none given, it will dump the entire
+#             passwords file
 
   local stdout=false
 
@@ -286,11 +293,14 @@ p_get() {
 
 p_add() {
 
-#   p new <options> [key] <value>
-#     This form is to add passwords to a password source.
+#   p add <options> [key] <value>
+#     Add passwords to a password source. 
 #
-#     -l  password length
+#     -l  password length, `p` will reject < 12 characters
 #     -o  output to stdout
+#
+#     key;  key for the password used for later retrieval
+#     value;  optional explicit password
 
   local password_length=32
   local stdout=false
@@ -352,9 +362,11 @@ p_add() {
 p_init() {
 
 #   p init <options> [source]
-#     This form is to create a new passwords source.
+#     Create a new passwords source. 
 #
-#     -c  sync mode
+#     -c  sync mode (used internally)
+#
+#     source; directory for the new password source
 
   sync_mode=false
 
@@ -397,8 +409,10 @@ p_init() {
 
 p_pull() {
 
-#   p pull <options> [source]
-#     This updates the home source from another source.
+#   p pull [source]
+#     Updates the home source from another given source.
+#
+#     source; source directory to overwrite the home source
   
   # is the .gnupg directory available and is the p.gpg file available?
   if [ ! -d "$1" -o ! -d "$1/.gnupg" -o ! -a "$1/p.gpg" ]; then
@@ -419,7 +433,7 @@ p_pull() {
 p_push() {
 
 #   p push 
-#     This updates all available passwords sources from the home source. 
+#     Updates all findable password sources with the home source.
 
   while read source; do
     # is the .gnupg directory available and is the p.gpg file available?
@@ -436,8 +450,10 @@ p_push() {
 
 p_sync() {
 
-#   p sync
-#     This does a pull and then push.
+#   p sync [source]
+#     Does a pull, and then a push.
+#
+#     source; source directory to overwrite the home source
   
   p_pull $@ && p_push
 
@@ -447,7 +463,7 @@ p_sync() {
 p_source() {
 
 #   p source
-#     List current sources, specify the active one.
+#     List known sources, specify the active one.
 
   local non_home=false
 
