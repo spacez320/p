@@ -1,4 +1,4 @@
-#p v0.1#
+#p v0.2#
 
 `p` is a program to manage passwords through bash.
 
@@ -68,6 +68,7 @@ Some commands require you be located on the machine with your home source.
   Add passwords to a password source.
 
   *-l* password length, `p` will reject < 12 characters
+
   *-o* output to stdout
 
   *key* is the key for the password that you can use to retrieve the password
@@ -88,7 +89,9 @@ Some commands require you be located on the machine with your home source.
   Edit a currently stored password.
 
   *-l* password length, `p` will reject < 12 characters
+  
   *-o* output to stdout
+
   *-y*  do not ask questions
 
   *key* is the key for the password that you want to edit 

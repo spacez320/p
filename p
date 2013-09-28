@@ -3,7 +3,7 @@
 # `p` should have been distributed with a `license` file.
 # MIT License (MIT), Copyright (c) 2013 Matthew Coleman
 
-VERSION='p: manage passwords through bash, v0.1'
+VERSION='p: manage passwords through bash, v0.2'
 
 USAGE='
 ###############################################################################
