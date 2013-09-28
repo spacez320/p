@@ -43,6 +43,16 @@ USAGE='
 #
 #     key;  key for the password to remove
 #
+#   p edit <options> [key]
+#     Edit a currently stored password.
+#
+#     -l  password length, `p` will reject < 12 characters
+#     -o  output to stdout
+#     -y  do not ask questions
+#     
+#     key;  key for the password to edit
+#     value;  optional explicit password
+#
 #   p init <options> [source]
 #     Create a new passwords source. 
 #
@@ -138,6 +148,11 @@ p_main() {
             _p_find_source
             ;;
     "rm") action=p_remove
+
+          # determine source
+          _p_find_source
+          ;;
+    "edit") action=p_edit
 
           # determine source
           _p_find_source
@@ -302,7 +317,6 @@ p_get() {
   return 0
 }
 
-
 p_add() {
 
 #   p add <options> [key] <value>
@@ -441,7 +455,15 @@ p_remove() {
     echo "Successfully removed password for '$key'"
   fi
 
-  exit 0
+  return 0
+}
+
+p_edit() {
+
+  p_remove $@ && p_add $@ 
+
+  return 0
+
 }
 
 p_init() {
