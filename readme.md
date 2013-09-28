@@ -68,11 +68,32 @@ Some commands require you be located on the machine with your home source.
   Add passwords to a password source.
 
   *-l* password length, `p` will reject < 12 characters
+  *-o* output to stdout
 
   *key* is the key for the password that you can use to retrieve the password
   later.
 
   *value* is an optional explicit password
+
+* `p rm (options) [key]`
+
+  Remove a password from a password source.
+
+  *-y*  do not ask questions
+
+  *key* is the key for the password that you want to remove 
+
+* `p edit (options) [key] (value)`
+
+  Edit a currently stored password.
+
+  *-l* password length, `p` will reject < 12 characters
+  *-o* output to stdout
+  *-y*  do not ask questions
+
+  *key* is the key for the password that you want to edit 
+
+  *value* is an optional explicit password replacement
 
 * `p init (options) [source]`
 
