@@ -1,10 +1,18 @@
-#p v0.2#
+p
+=
+
+---
+
+**DEPRECATED** - *I don't maintain or use this anymore. I'd recommend checking
+out [pass](https://www.passwordstore.org/), which is much better.*
+
+---
 
 `p` is a program to manage passwords through bash.
 
-This program is aimed primarily at desktop Linux users who use X, but prefer the
-terminal. It is meant to be straightforward to use, to add convenience, and to
-promote secure password practices. 
+This program is aimed primarily at desktop Linux users who use X, but prefer
+the terminal. It is meant to be straightforward to use, to add convenience, and
+to promote secure password practices. 
 
 * It uses GPG to encrypt password sources.
 * It uses pwgen to generate passwords.
@@ -127,6 +135,9 @@ Some commands require you be located on the machine with your home source.
 
 ## WARNINGS ##
 
+* **DEPRECATED** - I don't maintain or use this anymore. I'd recommend
+checking out [pass](https://www.passwordstore.org/), which is much better.
+
 * `p` can really be considered a wrapper for `gpg`. Knowing how to use `gpg`
 is advisable.
 
@@ -140,26 +151,3 @@ hand (for now).
 * This script is very much in its infancy. Be careful, keep a backup of your
 passwords somewhere else.
 
-## LICENSE ##
-
-The MIT License (MIT)
-
-Copyright (c) 2013 Matthew Coleman
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
